@@ -1,0 +1,9 @@
+services:
+  postgres-election:
+    image: postgres:14
+    container_name: postgres-election
+    network_mode: "host"
+    environment:
+      POSTGRES_DB: election_db
+      POSTGRES_USER: election_user
+      POSTGRES_PASSWORD: 123456
