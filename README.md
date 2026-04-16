@@ -1,0 +1,1 @@
+# election-query-service
