@@ -19,6 +19,9 @@ El servicio sigue un enfoque CQRS (lado de lectura) y utiliza Redis como capa de
 - Flyway
 - Springdoc OpenAPI (Swagger)
 - Maven
+- JUnit 5
+- Mockito
+- JaCoCo
 
 ---
 
@@ -44,9 +47,7 @@ Capas:
 
 ## 4. Versionamiento de API
 
-```
 /api/v1/*
-```
 
 ---
 
@@ -54,125 +55,72 @@ Capas:
 
 Crear archivo `.env`:
 
-```
-DB_URL=jdbc:postgresql://localhost:5432/election_db
-DB_USER=election_user
-DB_PASSWORD=123456
+DB_URL=jdbc:postgresql://localhost:5432/election_db  
+DB_USER=election_user  
+DB_PASSWORD=123456  
 
-REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_HOST=localhost  
+REDIS_PORT=6379  
 
-PORT=8082
-```
+PORT=8082  
 
 ---
 
 ## 6. Base de datos
 
-### Crear DB
-
-```sql
-CREATE DATABASE election_db;
-CREATE USER election_user WITH PASSWORD '123456';
-GRANT ALL PRIVILEGES ON DATABASE election_db TO election_user;
-```
+CREATE DATABASE election_db;  
+CREATE USER election_user WITH PASSWORD '123456';  
+GRANT ALL PRIVILEGES ON DATABASE election_db TO election_user;  
 
 ---
 
 ## 7. Redis
 
-```bash
-sudo systemctl start redis-server
-redis-cli ping
-```
+sudo systemctl start redis-server  
+redis-cli ping  
 
-Respuesta esperada:
-
-```
-PONG
-```
+Respuesta esperada: PONG
 
 ---
 
 ## 8. Flyway
 
-Migraciones en:
-
-```
 src/main/resources/db/migration
-```
-
-Ejemplo:
-
-### V1__init.sql
-
-```sql
-CREATE TABLE election (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    status VARCHAR(50),
-    start_date TIMESTAMP,
-    end_date TIMESTAMP
-);
-```
-
-### V2__seed.sql
-
-```sql
-INSERT INTO election (name, status, start_date, end_date) VALUES
-('Elección Presidencial 2026', 'ACTIVE', NOW(), NOW() + INTERVAL '1 day');
-```
 
 ---
 
 ## 9. Ejecución
 
-```bash
-export $(grep -v '^#' .env | xargs)
-mvn spring-boot:run
-```
+export $(grep -v '^#' .env | xargs)  
+mvn spring-boot:run  
 
 ---
 
 ## 10. Swagger
 
-```
 http://localhost:8082/swagger-ui.html
-```
 
 ---
 
 ## 11. Endpoints
 
-### Obtener todas las elecciones
-
-```
-GET /api/v1/elections
-```
-
-### Obtener por ID
-
-```
+GET /api/v1/elections  
 GET /api/v1/elections/{id}
-```
 
 ---
 
 ## 12. Respuestas
 
-### Éxito
+Éxito:
 
-```json
 {
   "id": 1,
   "name": "Elección Presidencial 2026",
   "status": "ACTIVE"
 }
-```
 
-### Error 404
+Error 404:
 
-```json
 {
   "timestamp": "...",
   "status": 404,
@@ -180,19 +128,30 @@ GET /api/v1/elections/{id}
   "message": "Election not found",
   "path": "/api/v1/elections/99"
 }
-```
 
 ---
 
-## 13. Consideraciones
+## 13. Pruebas
 
-- Servicio de solo lectura
-- Sin autenticación
-- Cache con Redis
-- Datos provenientes de sistemas externos
+El microservicio cuenta con pruebas unitarias para validar la lógica de negocio, manejo de cache y comportamiento de la API.
+
+- Service: cache hit, cache miss, not found  
+- Controller: respuestas 200, 400, 404  
+- Mapper: conversión entity → DTO  
+- Cache Adapter: interacción con Redis  
+- Exception Handler: manejo de errores  
 
 ---
 
-## 14. Estado
+## 14. Cobertura
 
-Microservicio funcional con cache, migraciones y endpoints listos para integración.
+Cobertura total: 83%  
+Cobertura lógica: ~100%
+
+Clases no cubiertas: config y clase principal (sin lógica funcional).
+
+---
+
+## 15. Estado
+
+Microservicio funcional, probado y listo para integración.
