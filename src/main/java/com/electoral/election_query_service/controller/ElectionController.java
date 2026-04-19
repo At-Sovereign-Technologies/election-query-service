@@ -25,7 +25,7 @@ public class ElectionController {
 
     private final ElectionService service;
 
-    @GetMapping
+    @GetMapping({"", "/"})
     @Operation(summary = "Get all elections")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successful response")
