@@ -2,156 +2,194 @@
 
 ## 1. Descripción
 
-El Election Query Service es responsable de exponer endpoints públicos de solo lectura relacionados con información de elecciones, como listado de elecciones y consulta por ID.
+El Election Query Service es un microservicio de solo lectura encargado
+de exponer información pública sobre elecciones, como listados y
+consultas por ID.
 
-El servicio sigue un enfoque CQRS (lado de lectura) y utiliza Redis como capa de cache para optimizar el rendimiento mediante el patrón cache-aside.
+Forma parte del lado de lectura bajo el enfoque CQRS y utiliza Redis
+como capa de cache con mecanismos de resiliencia para garantizar
+disponibilidad incluso ante fallos.
 
----
+------------------------------------------------------------------------
 
 ## 2. Tecnologías
 
-- Java 21
-- Spring Boot 3.x
-- Spring Web
-- Spring Data JPA
-- PostgreSQL
-- Redis
-- Flyway
-- Springdoc OpenAPI (Swagger)
-- Maven
-- JUnit 5
-- Mockito
-- JaCoCo
+-   Java 21
+-   Spring Boot 3.x
+-   Spring Web
+-   Spring Data JPA
+-   PostgreSQL
+-   Redis
+-   Resilience4j (Circuit Breaker)
+-   Flyway
+-   Springdoc OpenAPI (Swagger)
+-   Maven
+-   JUnit 5
+-   Mockito
+-   JaCoCo
 
----
+------------------------------------------------------------------------
 
 ## 3. Arquitectura
 
-El servicio está diseñado como un microservicio de solo lectura dentro del sistema ciudadano.
+Microservicio basado en arquitectura por capas:
 
-Capas:
+-   Controller: Manejo de endpoints REST
+-   Service: Lógica de negocio y orquestación
+-   Repository: Acceso a datos
+-   Cache Adapter: Integración con Redis
+-   Circuit Breaker: Manejo de fallos en cache
+-   Mapper: Transformación de entidades a DTOs
 
-- Controller: Manejo de solicitudes HTTP
-- Service: Lógica de negocio y cache
-- Repository: Acceso a datos
-- Cache Adapter: Redis
-- Mapper: Entity → DTO
+------------------------------------------------------------------------
 
-### Estrategia de cache
+## 4. Estrategia de Cache
 
-1. Consulta en Redis
-2. Si no existe → consulta DB
-3. Guarda resultado en cache
+Se implementa el patrón cache-aside con resiliencia:
 
----
+1.  Se consulta Redis
+2.  Si no existe o falla, se consulta la base de datos
+3.  Se almacena el resultado en cache
+4.  En caso de fallo de Redis, el sistema continúa operando con DB
 
-## 4. Versionamiento de API
+------------------------------------------------------------------------
 
-/api/v1/*
+## 5. Resiliencia (Circuit Breaker)
 
----
+Se implementa Circuit Breaker con Resilience4j:
 
-## 5. Variables de entorno
+-   Detecta fallos en Redis
+-   Evita llamadas innecesarias a servicios caídos
+-   Permite fallback automático hacia la base de datos
+-   Mejora la latencia en escenarios de fallo
+
+Estados:
+
+-   CLOSED → operación normal
+-   OPEN → Redis deshabilitado temporalmente
+-   HALF-OPEN → prueba de recuperación
+
+------------------------------------------------------------------------
+
+## 6. Versionamiento de API
+
+/api/v1/\*
+
+------------------------------------------------------------------------
+
+## 7. Variables de entorno
 
 Crear archivo `.env`:
 
-DB_URL=jdbc:postgresql://localhost:5432/election_db  
-DB_USER=election_user  
-DB_PASSWORD=123456  
+DB_URL=jdbc:postgresql://localhost:5432/election_db\
+DB_USER=election_user\
+DB_PASSWORD=123456
 
-REDIS_HOST=localhost  
-REDIS_PORT=6379  
+REDIS_HOST=localhost\
+REDIS_PORT=6379
 
-PORT=8082  
+PORT=8082
 
----
+------------------------------------------------------------------------
 
-## 6. Base de datos
+## 8. Base de datos
 
-CREATE DATABASE election_db;  
-CREATE USER election_user WITH PASSWORD '123456';  
-GRANT ALL PRIVILEGES ON DATABASE election_db TO election_user;  
+CREATE DATABASE election_db;\
+CREATE USER election_user WITH PASSWORD '123456';\
+GRANT ALL PRIVILEGES ON DATABASE election_db TO election_user;
 
----
+------------------------------------------------------------------------
 
-## 7. Redis
+## 9. Redis
 
-sudo systemctl start redis-server  
-redis-cli ping  
+sudo systemctl start redis-server\
+redis-cli ping
 
 Respuesta esperada: PONG
 
----
+------------------------------------------------------------------------
 
-## 8. Flyway
+## 10. Flyway
+
+Ubicación de migraciones:
 
 src/main/resources/db/migration
 
----
+------------------------------------------------------------------------
 
-## 9. Ejecución
+## 11. Ejecución
 
-export $(grep -v '^#' .env | xargs)  
-mvn spring-boot:run  
+export \$(grep -v '\^#' .env \| xargs)\
+mvn spring-boot:run
 
----
+------------------------------------------------------------------------
 
-## 10. Swagger
+## 12. Swagger
 
 http://localhost:8082/swagger-ui.html
 
----
+------------------------------------------------------------------------
 
-## 11. Endpoints
+## 13. Endpoints
 
-GET /api/v1/elections  
+GET /api/v1/elections\
 GET /api/v1/elections/{id}
 
----
+------------------------------------------------------------------------
 
-## 12. Respuestas
+## 14. Respuestas
 
 Éxito:
 
-{
-  "id": 1,
-  "name": "Elección Presidencial 2026",
-  "status": "ACTIVE"
-}
+{ "id": 1, "name": "Elección Presidencial 2026", "status": "ACTIVE" }
 
 Error 404:
 
-{
-  "timestamp": "...",
-  "status": 404,
-  "error": "NOT_FOUND",
-  "message": "Election not found",
-  "path": "/api/v1/elections/99"
-}
+{ "timestamp": "...", "status": 404, "error": "NOT_FOUND", "message":
+"Election not found", "path": "/api/v1/elections/99" }
 
----
+------------------------------------------------------------------------
 
-## 13. Pruebas
+## 15. Observabilidad
 
-El microservicio cuenta con pruebas unitarias para validar la lógica de negocio, manejo de cache y comportamiento de la API.
+Logging estructurado:
 
-- Service: cache hit, cache miss, not found  
-- Controller: respuestas 200, 400, 404  
-- Mapper: conversión entity → DTO  
-- Cache Adapter: interacción con Redis  
-- Exception Handler: manejo de errores  
+-   CACHE HIT
+-   CACHE MISS
+-   CACHE STORE
+-   CACHE ERROR
+-   CACHE FALLBACK
+-   Circuit Breaker events (OPEN, CLOSED, HALF-OPEN)
 
----
+------------------------------------------------------------------------
 
-## 14. Cobertura
+## 16. Pruebas
 
-Cobertura total: 83%  
-Cobertura lógica: ~100%
+El microservicio cuenta con pruebas unitarias:
 
-Clases no cubiertas: config y clase principal (sin lógica funcional).
+-   Service: cache hit, cache miss, fallback
+-   Controller: respuestas HTTP
+-   Mapper: transformación de datos
+-   Cache Adapter: comportamiento con Redis
+-   Exception Handler: manejo de errores
 
----
+------------------------------------------------------------------------
 
-## 15. Estado
+## 17. Cobertura
 
-Microservicio funcional, probado y listo para integración.
+Cobertura total: 83%\
+Cobertura lógica: \~100%
+
+Clases no cubiertas: configuración y clase principal.
+
+------------------------------------------------------------------------
+
+## 18. Estado
+
+Microservicio funcional, resiliente y listo para integración:
+
+-   API REST operativa
+-   PostgreSQL integrado
+-   Redis con tolerancia a fallos
+-   Circuit Breaker activo
+-   Documentación Swagger
