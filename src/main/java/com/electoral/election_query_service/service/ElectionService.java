@@ -12,7 +12,6 @@ import com.electoral.election_query_service.entity.Election;
 import com.electoral.election_query_service.exception.ResourceNotFoundException;
 import com.electoral.election_query_service.mapper.ElectionMapper;
 import com.electoral.election_query_service.repository.ElectionRepository;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,14 +25,12 @@ public class ElectionService {
 
     private static final Logger log = LoggerFactory.getLogger(ElectionService.class);
 
+    @SuppressWarnings("unchecked")
     public List<ElectionResponse> getAll() {
 
         String key = "elections:all";
 
-        List<ElectionResponse> cached = cache.get(
-                key,
-                new TypeReference<List<ElectionResponse>>() {}
-        );
+        List<ElectionResponse> cached = (List<ElectionResponse>) cache.get(key);
 
         if (cached != null) {
             log.info("CACHE HIT - elections");
@@ -57,7 +54,7 @@ public class ElectionService {
 
         String key = "election:" + id;
 
-        ElectionResponse cached = cache.get(key, ElectionResponse.class);
+        ElectionResponse cached = (ElectionResponse) cache.get(key);
 
         if (cached != null) {
             log.info("CACHE HIT - election id={}", id);
